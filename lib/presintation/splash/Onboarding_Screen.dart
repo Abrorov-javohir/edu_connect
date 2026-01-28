@@ -1,9 +1,11 @@
+// screens/onboarding_screen.dart (Beautiful UI with Localization)
 import 'package:edu_connect/presintation/auth/login_screen.dart';
 import 'package:edu_connect/presintation/auth/register_screen.dart';
-import 'package:edu_connect/presintation/auth/smslogin_screen.dart';
+import 'package:edu_connect/providers/language_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:edu_connect/presintation/auth/smsregister_screen.dart';
+import 'package:animate_do/animate_do.dart';
+import 'package:provider/provider.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -16,31 +18,77 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _controller = PageController();
   int _currentPage = 0;
 
+  String _getLocalizedString(String key) {
+    final language = context.read<LanguageProvider>().currentLanguage;
+    switch (language) {
+      case 'uz':
+        switch (key) {
+          case 'learn_anywhere': return "Har qanday joyda O'rganish";
+          case 'learn_description': return "EduConnect bilan bilimlarni oching — shaxsiy o'qish hamrohingiz.";
+          case 'connect_collaborate': return "Bog'laning & Hamkorlik Qiling";
+          case 'connect_description': return "O'qituvchilar va o'quvchilar, bitta integratsiyalangan platformada birlashtirilgan.";
+          case 'simplify_learning': return "O'qishni Soddalashtiring";
+          case 'simplify_description': return "Vazifalar, testlar va e'lonlar — barchasi bitta joyda.";
+          case 'skip': return "O'tkazish";
+          case 'get_started': return "Boshlash";
+          case 'next': return "Keyingi";
+          default: return key;
+        }
+      case 'ru':
+        switch (key) {
+          case 'learn_anywhere': return "Учитесь Везде";
+          case 'learn_description': return "Откройте знания с EduConnect — вашим личным помощником в обучении.";
+          case 'connect_collaborate': return "Соединяйтесь и Совместная Работа";
+          case 'connect_description': return "Учителя и студенты, объединенные в одной интегрированной платформе.";
+          case 'simplify_learning': return "Упростить Обучение";
+          case 'simplify_description': return "Задания, тесты и объявления — все в одном месте.";
+          case 'skip': return "Пропустить";
+          case 'get_started': return "Начать";
+          case 'next': return "Далее";
+          default: return key;
+        }
+      case 'en':
+      default:
+        switch (key) {
+          case 'learn_anywhere': return "Learn Anywhere";
+          case 'learn_description': return "Unlock knowledge with EduConnect — your personal learning companion.";
+          case 'connect_collaborate': return "Connect & Collaborate";
+          case 'connect_description': return "Teachers and students, united in one integrated platform.";
+          case 'simplify_learning': return "Simplify Learning";
+          case 'simplify_description': return "Assignments, quizzes, and announcements — all in one place.";
+          case 'skip': return "Skip";
+          case 'get_started': return "Get Started";
+          case 'next': return "Next";
+          default: return key;
+        }
+    }
+  }
+
   final List<Map<String, String>> _pages = [
     {
       "image": "assets/images/image.png",
-      "title": "Learn Anytime, Anywhere",
-      "text":
-          "Unlock knowledge with EduConnect — your personal learning companion.",
+      "title": "learn_anywhere",
+      "text": "learn_description",
     },
     {
       "image": "assets/images/image2.jpg",
-      "title": "Connect & Collaborate",
-      "text": "Teachers and students, united in one seamless platform.",
+      "title": "connect_collaborate",
+      "text": "connect_description",
     },
     {
       "image": "assets/images/image3.png",
-      "title": "Simplify Learning",
-      "text": "Assignments, quizzes, and announcements — all in one place.",
+      "title": "simplify_learning",
+      "text": "simplify_description",
     },
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Stack(
         children: [
-          // ✅ Background image that changes with page
+          // Background Image with Animation
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 500),
             transitionBuilder: (Widget child, Animation<double> animation) {
@@ -54,7 +102,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   Image.asset(
                     _pages[_currentPage]["image"]!,
                     fit: BoxFit.cover,
-                    color: Colors.black.withOpacity(0.5), // dark overlay
+                    color: Colors.black.withOpacity(0.6),
                     colorBlendMode: BlendMode.darken,
                   ),
                   Container(
@@ -62,7 +110,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       gradient: LinearGradient(
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.3),
+                          Colors.black.withOpacity(0.4),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -74,7 +122,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ),
           ),
 
-          // PageView Content (without top image)
+          // Content
           PageView.builder(
             controller: _controller,
             itemCount: _pages.length,
@@ -88,33 +136,66 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // ❌ Removed top image
-                    // Title
-                    Text(
-                      page["title"]!,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        shadows: [
-                          Shadow(
-                            color: Colors.black.withOpacity(0.4),
-                            blurRadius: 10,
+                    FadeInUp(
+                      delay: const Duration(milliseconds: 200),
+                      duration: const Duration(milliseconds: 600),
+                      child: Container(
+                        width: 120,
+                        height: 120,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 2,
                           ),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 20,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.school,
+                          size: 64,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    FadeInUp(
+                      delay: const Duration(milliseconds: 300),
+                      duration: const Duration(milliseconds: 600),
+                      child: Text(
+                        _getLocalizedString(page["title"]!),
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black.withOpacity(0.4),
+                              blurRadius: 10,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
-
-                    // Description
-                    Text(
-                      page["text"]!,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.poppins(
-                        fontSize: 17,
-                        color: Colors.white.withOpacity(0.9),
-                        height: 1.6,
+                    FadeInUp(
+                      delay: const Duration(milliseconds: 400),
+                      duration: const Duration(milliseconds: 600),
+                      child: Text(
+                        _getLocalizedString(page["text"]!),
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.poppins(
+                          fontSize: 17,
+                          color: Colors.white.withOpacity(0.9),
+                          height: 1.6,
+                        ),
                       ),
                     ),
                   ],
@@ -127,25 +208,35 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Positioned(
             top: 60,
             right: 20,
-            child: TextButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => LoginScreen()),
-                );
-              },
-              child: Text(
-                "Skip",
-                style: GoogleFonts.poppins(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
+            child: FadeIn(
+              duration: const Duration(milliseconds: 800),
+              child: TextButton(
+                onPressed: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
+                },
+                style: TextButton.styleFrom(
+                  backgroundColor: Colors.white.withOpacity(0.2),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
+                child: Text(
+                  _getLocalizedString('skip'),
+                  style: GoogleFonts.poppins(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ),
           ),
 
-          // Bottom Controls (Indicators + Button)
+          // Bottom Controls
           Positioned(
             bottom: 40,
             left: 20,
@@ -174,47 +265,49 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 const SizedBox(height: 30),
 
                 // Next / Get Started Button
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style:
-                        ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: Colors.deepPurple.shade700,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          elevation: 0,
-                          shadowColor: Colors.transparent,
-                          side: BorderSide(
-                            color: Colors.white.withOpacity(0.3),
-                          ),
-                        ).copyWith(
-                          overlayColor: MaterialStateProperty.all(
-                            Colors.white.withOpacity(0.1),
-                          ),
+                FadeInUp(
+                  delay: const Duration(milliseconds: 500),
+                  duration: const Duration(milliseconds: 600),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 55,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.blue[800]!
+                            : Colors.blue[700]!,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                    onPressed: () {
-                      if (_currentPage == _pages.length - 1) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => RegisterScreen()),
-                        );
-                      } else {
-                        _controller.nextPage(
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.easeInOut,
-                        );
-                      }
-                    },
-                    child: Text(
-                      _currentPage == _pages.length - 1
-                          ? "Get Started"
-                          : "Next",
-                      style: GoogleFonts.poppins(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: 0,
+                        shadowColor: Colors.transparent,
+                        side: BorderSide(
+                          color: Colors.white.withOpacity(0.3),
+                        ),
+                      ),
+                      onPressed: () {
+                        if (_currentPage == _pages.length - 1) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                          );
+                        } else {
+                          _controller.nextPage(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.easeInOut,
+                          );
+                        }
+                      },
+                      child: Text(
+                        _currentPage == _pages.length - 1
+                            ? _getLocalizedString('get_started')
+                            : _getLocalizedString('next'),
+                        style: GoogleFonts.poppins(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                   ),
