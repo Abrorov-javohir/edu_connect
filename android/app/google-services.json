@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "893679215534",
+    "project_id": "educonnect-fe617",
+    "storage_bucket": "educonnect-fe617.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:893679215534:android:a6ea6dea988d0dea9d1e3f",
+        "android_client_info": {
+          "package_name": "com.example.edu_connect"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "893679215534-4t2hver179r6c64hk7s9l6f3sjgbrucf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.edu_connect",
+            "certificate_hash": "32a751f8bce52e82f6e9324c4b24f137707704c4"
+          }
+        },
+        {
+          "client_id": "893679215534-4gm87pd3f4o5pc9knpju9as3cgr5bfqa.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC-ARSfa58Qtl6uGNF8JhNQM5-BIXlBWq8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "893679215534-4gm87pd3f4o5pc9knpju9as3cgr5bfqa.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "893679215534-7culrsjc4n7pqj151ucd27g36r76koss.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.eduConnect"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
