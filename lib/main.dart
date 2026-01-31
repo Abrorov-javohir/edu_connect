@@ -133,7 +133,7 @@ class EduConnectApp extends StatelessWidget {
             '/register': (context) => const RegisterScreen(),
             '/reset_password': (context) => const ResetPasswordScreen(),
             '/teacher_home': (context) => const TeacherScreen(),
-            '/teacher_chat': (context) => const TeacherChatScreen(), // ✅ Added
+            // '/teacher_chat': (context) => const TeacherChatScreen(), // ✅ Added
             '/student_home': (context) => const StudentHomeScreen(),
             '/student_profile': (context) => const StudentProfileScreen(),
             '/student_calendar': (context) => const StudentCalendarScreen(),

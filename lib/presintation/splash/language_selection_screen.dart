@@ -1,21 +1,22 @@
-// language_selection_screen.dart
+// screens/language_selection_screen.dart (First Launch Check)
+import 'package:edu_connect/presintation/splash/onboarding_screen.dart';
 import 'package:edu_connect/providers/language_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:animate_do/animate_do.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
 
   @override
-  State<LanguageSelectionScreen> createState() =>
-      _LanguageSelectionScreenState();
+  State<LanguageSelectionScreen> createState() => _LanguageSelectionScreenState();
 }
 
 class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
   String? _selectedLanguage;
+  bool _loading = true;
 
   final List<Map<String, String>> _languages = [
     {"code": "en", "name": "English", "flag": "🇺🇸"},
@@ -28,43 +29,28 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
     switch (language) {
       case 'uz':
         switch (key) {
-          case 'welcome':
-            return "Til Tanlang";
-          case 'choose_language':
-            return "Tilni tanlang";
-          case 'select_preferred_language':
-            return "Sizning afzal ko'rgan tilizni tanlang";
-          case 'continue':
-            return "Davom etish";
-          default:
-            return key;
+          case 'welcome': return "Til Tanlang";
+          case 'choose_language': return "Tilni Tanlang";
+          case 'select_preferred_language': return "Afzal ko'rgan tilizni tanlang";
+          case 'continue': return "Davom Etish";
+          default: return key;
         }
       case 'ru':
         switch (key) {
-          case 'welcome':
-            return "Выберите Язык";
-          case 'choose_language':
-            return "Выберите язык";
-          case 'select_preferred_language':
-            return "Выберите предпочтительный язык";
-          case 'continue':
-            return "Продолжить";
-          default:
-            return key;
+          case 'welcome': return "Выберите Язык";
+          case 'choose_language': return "Выберите Язык";
+          case 'select_preferred_language': return "Выберите предпочитаемый язык";
+          case 'continue': return "Продолжить";
+          default: return key;
         }
       case 'en':
       default:
         switch (key) {
-          case 'welcome':
-            return "Welcome";
-          case 'choose_language':
-            return "Choose Language";
-          case 'select_preferred_language':
-            return "Select your preferred language";
-          case 'continue':
-            return "Continue";
-          default:
-            return key;
+          case 'welcome': return "Welcome";
+          case 'choose_language': return "Choose Language";
+          case 'select_preferred_language': return "Select your preferred language";
+          case 'continue': return "Continue";
+          default: return key;
         }
     }
   }
@@ -72,28 +58,52 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSavedLanguage();
+    _checkFirstLaunch();
   }
 
-  Future<void> _loadSavedLanguage() async {
+  Future<void> _checkFirstLaunch() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedLanguage = prefs.getString('language_code');
+    final hasLaunchedBefore = prefs.getBool('has_launched_before') ?? false;
 
+    if (hasLaunchedBefore) {
+      // User has launched before, skip to onboarding
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+      );
+      return;
+    }
+
+    // Load saved language if exists
+    final savedLanguage = prefs.getString('language_code');
     if (savedLanguage != null) {
       setState(() {
         _selectedLanguage = savedLanguage;
       });
+      context.read<LanguageProvider>().setLanguage(savedLanguage);
     } else {
-      // Default to English if no language is saved
+      // Default to English
       setState(() {
         _selectedLanguage = 'en';
       });
+      context.read<LanguageProvider>().setLanguage('en');
     }
+
+    setState(() => _loading = false);
   }
 
-  Future<void> _saveLanguage(String languageCode) async {
+  Future<void> _saveLanguageAndContinue() async {
+    if (_selectedLanguage == null) return;
+
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('language_code', languageCode);
+    await prefs.setString('language_code', _selectedLanguage!);
+    await prefs.setBool('has_launched_before', true);
+
+    // Navigate to onboarding screen
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const OnboardingScreen()),
+    );
   }
 
   void _selectLanguage(String languageCode) {
@@ -101,11 +111,16 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
       _selectedLanguage = languageCode;
     });
     context.read<LanguageProvider>().setLanguage(languageCode);
-    _saveLanguage(languageCode);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: SafeArea(
@@ -115,8 +130,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo and App Name
-                FadeInUp(
+                FadeIn(
                   duration: const Duration(milliseconds: 800),
                   child: Column(
                     children: [
@@ -153,14 +167,17 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
-                        _getLocalizedString('select_preferred_language'),
-                        style: GoogleFonts.poppins(
-                          fontSize: 16,
-                          color: Theme.of(context).textTheme.bodyMedium?.color,
-                          height: 1.4,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          _getLocalizedString('select_preferred_language'),
+                          style: GoogleFonts.poppins(
+                            fontSize: 16,
+                            color: Theme.of(context).textTheme.bodyMedium?.color,
+                            height: 1.4,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ],
                   ),
@@ -175,8 +192,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: _languages.length,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
+                    separatorBuilder: (context, index) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final language = _languages[index];
                       final isSelected = _selectedLanguage == language["code"];
@@ -187,36 +203,30 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? Theme.of(context).brightness ==
-                                          Brightness.dark
-                                      ? Colors.blue[900]?.withOpacity(0.3)
-                                      : Colors.blue[50]
-                                : Theme.of(context).brightness ==
-                                      Brightness.dark
-                                ? Colors.grey[800]
-                                : Colors.white,
+                                ? Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.blue[900]?.withOpacity(0.3)
+                                    : Colors.blue[50]
+                                : Theme.of(context).brightness == Brightness.dark
+                                    ? Colors.grey[800]
+                                    : Colors.white,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
                               color: isSelected
-                                  ? (Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.blue[600]!
-                                        : Colors.blue[300]!)
-                                  : (Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.grey[700]!
-                                        : Colors.grey[200]!),
+                                  ? (Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.blue[600]!
+                                      : Colors.blue[300]!)
+                                  : (Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.grey[700]!
+                                      : Colors.grey[200]!),
                               width: isSelected ? 2 : 1,
                             ),
                             boxShadow: [
                               if (isSelected)
                                 BoxShadow(
-                                  color:
-                                      (Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? Colors.blue
-                                              : Colors.blue)
-                                          .withOpacity(0.1),
+                                  color: (Theme.of(context).brightness == Brightness.dark
+                                      ? Colors.blue
+                                      : Colors.blue)
+                                      .withOpacity(0.1),
                                   blurRadius: 15,
                                   offset: const Offset(0, 6),
                                 ),
@@ -228,16 +238,12 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color:
-                                      Theme.of(context).brightness ==
-                                          Brightness.dark
+                                  color: Theme.of(context).brightness == Brightness.dark
                                       ? Colors.grey[700]
                                       : Colors.grey[50],
                                   borderRadius: BorderRadius.circular(12),
                                   border: Border.all(
-                                    color:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
+                                    color: Theme.of(context).brightness == Brightness.dark
                                         ? Colors.grey[600]!
                                         : Colors.grey[200]!,
                                     width: 1,
@@ -256,26 +262,19 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                                   language["name"]!,
                                   style: GoogleFonts.poppins(
                                     fontSize: 16,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
+                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
                                     color: isSelected
-                                        ? (Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? Colors.blue[300]
-                                              : Colors.blue[700])
-                                        : Theme.of(
-                                            context,
-                                          ).textTheme.titleLarge?.color,
+                                        ? (Theme.of(context).brightness == Brightness.dark
+                                            ? Colors.blue[300]
+                                            : Colors.blue[700])
+                                        : Theme.of(context).textTheme.titleLarge?.color,
                                   ),
                                 ),
                               ),
                               if (isSelected)
                                 Icon(
                                   Icons.check_circle,
-                                  color:
-                                      Theme.of(context).brightness ==
-                                          Brightness.dark
+                                  color: Theme.of(context).brightness == Brightness.dark
                                       ? Colors.blue[300]
                                       : Colors.blue[700],
                                   size: 24,
@@ -298,22 +297,16 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
                     height: 55,
                     child: ElevatedButton(
                       onPressed: _selectedLanguage != null
-                          ? () {
-                              // Navigate to onboarding screen
-                              Navigator.pushReplacementNamed(
-                                context,
-                                '/onboarding',
-                              );
-                            }
+                          ? _saveLanguageAndContinue
                           : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _selectedLanguage != null
                             ? Theme.of(context).brightness == Brightness.dark
-                                  ? Colors.blue[800]
-                                  : Colors.blue
+                                ? Colors.blue[800]
+                                : Colors.blue
                             : Theme.of(context).brightness == Brightness.dark
-                            ? Colors.grey[700]
-                            : Colors.grey[300],
+                                ? Colors.grey[700]
+                                : Colors.grey[300],
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),

@@ -21,7 +21,7 @@ class _TeacherScreenState extends State<TeacherScreen> {
   final List<Widget> _pages = [
     const HomeScreen(),
     const TeacherTaskListScreen(),
-    const TeacherChatScreen(), // ✅ Added Chat Screen
+    // const TeacherChatScreen(), // ✅ Added Chat Screen
     const TeacherProfileScreen(),
   ];
 

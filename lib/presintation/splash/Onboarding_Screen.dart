@@ -1,11 +1,11 @@
-// screens/onboarding_screen.dart (Beautiful UI with Localization)
+// screens/onboarding_screen.dart (Beautiful UI with Localization and First Launch Check)
 import 'package:edu_connect/presintation/auth/login_screen.dart';
-import 'package:edu_connect/presintation/auth/register_screen.dart';
 import 'package:edu_connect/providers/language_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -83,9 +83,33 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _checkFirstLaunch();
+  }
+
+  Future<void> _checkFirstLaunch() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasLaunchedBefore = prefs.getBool('has_launched_before') ?? false;
+
+    if (hasLaunchedBefore) {
+      // User has seen onboarding before, skip to login
+      Navigator.pushReplacementNamed(context, '/login');
+      return;
+    }
+  }
+
+  Future<void> _markAsSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('has_launched_before', true);
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
       body: Stack(
         children: [
           // Background Image with Animation
@@ -211,11 +235,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             child: FadeIn(
               duration: const Duration(milliseconds: 800),
               child: TextButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  );
+                onPressed: () async {
+                  await _markAsSeen();
+                  Navigator.pushReplacementNamed(context, '/login');
                 },
                 style: TextButton.styleFrom(
                   backgroundColor: Colors.white.withOpacity(0.2),
@@ -274,9 +296,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     child: ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: Theme.of(context).brightness == Brightness.dark
-                            ? Colors.blue[800]!
-                            : Colors.blue[700]!,
+                        foregroundColor: isDarkMode ? Colors.blue[800]! : Colors.blue[700]!,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -287,12 +307,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                           color: Colors.white.withOpacity(0.3),
                         ),
                       ),
-                      onPressed: () {
+                      onPressed: () async {
                         if (_currentPage == _pages.length - 1) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                          );
+                          await _markAsSeen();
+                          Navigator.pushReplacementNamed(context, '/login');
                         } else {
                           _controller.nextPage(
                             duration: const Duration(milliseconds: 500),
