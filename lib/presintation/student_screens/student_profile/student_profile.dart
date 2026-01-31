@@ -5,7 +5,7 @@ import 'package:edu_connect/data/student_stat_service.dart';
 import 'package:edu_connect/presintation/student_screens/settings/settings_screen.dart';
 import 'package:edu_connect/presintation/student_screens/student_profile/student_classes_section.dart';
 import 'package:edu_connect/presintation/student_screens/student_profile/student_profile_edit_screen.dart';
-import 'package:edu_connect/presintation/student_screens/student_profile/student_all_classes_screen.dart'; // Import the new screen
+import 'package:edu_connect/presintation/student_screens/student_profile/student_all_classes_screen.dart';
 import 'package:edu_connect/providers/language_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -61,10 +61,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             return "Sinf";
           case 'phone':
             return "Telefon";
-          case 'settings':
-            return "Sozlamalar";
-          case 'language_appearance':
-            return "Til & Ko'rinish";
           case 'edit_profile':
             return "Profilni Tahrirlash";
           case 'logout':
@@ -79,8 +75,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             return "Chiqish";
           case 'logout_failed':
             return "Chiqish amalga oshmadi: ";
-          case 'view_all_classes': // New localization
+          case 'view_all_classes':
             return "Barcha Sinfni Ko'rish";
+          case 'logging_out':
+            return "Chiqish...";
           default:
             return key;
         }
@@ -116,10 +114,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             return "Класс";
           case 'phone':
             return "Телефон";
-          case 'settings':
-            return "Настройки";
-          case 'language_appearance':
-            return "Язык & Внешний вид";
           case 'edit_profile':
             return "Редактировать Профиль";
           case 'logout':
@@ -134,8 +128,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             return "Выйти";
           case 'logout_failed':
             return "Выход не удался: ";
-          case 'view_all_classes': // New localization
+          case 'view_all_classes':
             return "Посмотреть Все Классы";
+          case 'logging_out':
+            return "Выход...";
           default:
             return key;
         }
@@ -172,10 +168,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             return "Grade";
           case 'phone':
             return "Phone";
-          case 'settings':
-            return "Settings";
-          case 'language_appearance':
-            return "Language & Appearance";
           case 'edit_profile':
             return "Edit Profile";
           case 'logout':
@@ -190,8 +182,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             return "Logout";
           case 'logout_failed':
             return "Logout failed: ";
-          case 'view_all_classes': // New localization
+          case 'view_all_classes':
             return "View All Classes";
+          case 'logging_out':
+            return "Logging out...";
           default:
             return key;
         }
@@ -202,8 +196,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   void initState() {
     super.initState();
     _loadStats();
-
-    // Set up user data subscription
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       _userSubscription = FirebaseFirestore.instance
@@ -211,9 +203,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
           .doc(uid)
           .snapshots()
           .listen((snapshot) {
-            // User data changed, refresh stats if needed
             if (snapshot.exists) {
-              // You can add logic here to refresh stats when user data changes
+              _loadStats();
             }
           });
     }
@@ -221,7 +212,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
   @override
   void dispose() {
-    // Clean up subscription to prevent memory leaks
     _userSubscription?.cancel();
     super.dispose();
   }
@@ -250,8 +240,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final uid = FirebaseAuth.instance.currentUser?.uid;
-
-    // Handle null user
     if (uid == null) {
       return Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
@@ -335,6 +323,31 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text(
+          _getLocalizedString('profile'),
+          style: GoogleFonts.poppins(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+            color: Theme.of(context).appBarTheme.foregroundColor,
+          ),
+        ),
+        centerTitle: true,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
+              );
+            },
+          ),
+        ],
+      ),
       body: SafeArea(
         child: StreamBuilder<DocumentSnapshot>(
           stream: FirebaseFirestore.instance
@@ -383,118 +396,74 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             final phone = data["phone"] ?? "Not provided";
             final grade = data["grade"] ?? "Not set";
             final role = data["role"] ?? "student";
-
             final imageUrl =
                 data["imageUrl"]?.toString() ??
                 "https://images.icon-icons.com/2643/PNG/512/male_man_people_person_avatar_white_tone_icon_159363.png";
 
             return CustomScrollView(
               slivers: [
-                SliverAppBar(
-                  expandedHeight: 280,
-                  pinned: true,
-                  backgroundColor: Theme.of(
-                    context,
-                  ).appBarTheme.backgroundColor,
-                  foregroundColor: Theme.of(
-                    context,
-                  ).appBarTheme.foregroundColor,
-                  flexibleSpace: FlexibleSpaceBar(
-                    title: Text(
-                      _getLocalizedString('profile'),
-                      style: GoogleFonts.poppins(
-                        color: Theme.of(context).appBarTheme.foregroundColor,
-                        fontSize: 20,
-                        fontWeight: FontWeight.w700,
-                      ),
+                // ===== SECTION 1: PROFILE HEADER WITH ELEVATED PICTURE =====
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
                     ),
-                    background: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF1E88E5)
-                                : const Color(0xFF4A6CF7),
-                            Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF42A5F5)
-                                : const Color(0xFF6C8CFF),
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                      ),
+                    child: Center(
                       child: Stack(
-                        fit: StackFit.expand,
+                        alignment: Alignment.bottomRight,
                         children: [
-                          // Background pattern
-                          Positioned.fill(
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
+                          Container(
+                            width: 130,
+                            height: 130,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.25),
+                                  blurRadius: 25,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                              child: Container(
+                                color:
                                     Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? const Color(0xFF1E88E5)
-                                        : const Color(0xFF4A6CF7),
-                                    Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? const Color(0xFF42A5F5)
-                                        : const Color(0xFF6C8CFF),
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
+                                        Brightness.dark
+                                    ? Colors.grey[700]
+                                    : Colors.grey[300],
+                                child: Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(Icons.person, size: 60),
                                 ),
                               ),
                             ),
                           ),
-                          // Profile picture
                           Positioned(
-                            top: 120,
-                            left: 0,
-                            right: 0,
-                            child: Center(
-                              child: Container(
-                                width: 140,
-                                height: 140,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 4,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.3),
-                                      blurRadius: 20,
-                                      offset: const Offset(0, 8),
-                                    ),
-                                  ],
+                            bottom: 4,
+                            right: 4,
+                            child: Container(
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color:
+                                    Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? Colors.blue[800]
+                                    : Colors.blue[600],
+                                border: Border.all(
+                                  color: Colors.white,
+                                  width: 2,
                                 ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(70),
-                                  child: Image.network(
-                                    imageUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) {
-                                      return Container(
-                                        color:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.grey[700]
-                                            : Colors.grey[300],
-                                        child: Icon(
-                                          Icons.person,
-                                          size: 60,
-                                          color:
-                                              Theme.of(context).brightness ==
-                                                  Brightness.dark
-                                              ? Colors.grey[300]
-                                              : Colors.grey,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                color: Colors.white,
+                                size: 18,
                               ),
                             ),
                           ),
@@ -503,32 +472,36 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     ),
                   ),
                 ),
+
+                // ===== SECTION 2: STUDENT IDENTITY =====
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 50),
                         FadeInUp(
                           duration: const Duration(milliseconds: 600),
                           child: Text(
                             fullName,
                             style: GoogleFonts.poppins(
-                              fontSize: 28,
+                              fontSize: 26,
                               fontWeight: FontWeight.w800,
                               color: Theme.of(
                                 context,
                               ).textTheme.titleLarge?.color,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
+                        const SizedBox(height: 6),
                         FadeInUp(
                           delay: const Duration(milliseconds: 100),
                           duration: const Duration(milliseconds: 600),
                           child: Text(
                             role == "teacher" ? "Teacher" : grade,
                             style: GoogleFonts.poppins(
-                              fontSize: 18,
+                              fontSize: 17,
                               color: Theme.of(
                                 context,
                               ).textTheme.bodyMedium?.color,
@@ -536,16 +509,24 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 32), // Section separator
+                      ],
+                    ),
+                  ),
+                ),
 
-                        // Classes Section
+                // ===== SECTION 3: CLASSES =====
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         FadeInUp(
                           delay: const Duration(milliseconds: 200),
                           duration: const Duration(milliseconds: 600),
                           child: StudentClassesSection(context: context),
                         ),
-
-                        // NEW: View All Classes Button
                         const SizedBox(height: 16),
                         FadeInUp(
                           delay: const Duration(milliseconds: 250),
@@ -553,16 +534,13 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                           child: SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
-                              onPressed: () {
-                                // Navigate to the new screen showing all classes
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        StudentAllClassesScreen(),
-                                  ),
-                                );
-                              },
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      StudentAllClassesScreen(),
+                                ),
+                              ),
                               icon: const Icon(Icons.class_outlined, size: 20),
                               label: Text(
                                 _getLocalizedString('view_all_classes'),
@@ -584,160 +562,95 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                elevation: 3,
                               ),
                             ),
                           ),
                         ),
+                        const SizedBox(height: 32), // Section separator
+                      ],
+                    ),
+                  ),
+                ),
 
-                        const SizedBox(height: 28),
-
-                        // Stats Cards - NOW WITH REAL DATA!
-                        if (_loadingStats)
-                          Center(
-                            child: CircularProgressIndicator(
-                              color:
-                                  Theme.of(context).brightness ==
-                                      Brightness.dark
-                                  ? Colors.blue[400]
-                                  : Colors.blue,
-                            ),
-                          )
-                        else
-                          Column(
-                            children: [
-                              FadeInUp(
-                                delay: const Duration(milliseconds: 300),
-                                duration: const Duration(milliseconds: 600),
-                                child: Row(
-                                  children: [
-                                    _statCard(
-                                      _getLocalizedString('points'),
-                                      "${_stats?.totalPoints ?? 0}",
-                                      Icons.star,
-                                      Colors.orange[700]!,
-                                    ),
-                                    const SizedBox(width: 16),
-                                    _statCard(
-                                      _getLocalizedString('streak'),
-                                      "${_stats?.currentStreak ?? 0} ${_getLocalizedString('days')}",
-                                      Icons.local_fire_department,
-                                      Colors.red[700]!,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              FadeInUp(
-                                delay: const Duration(milliseconds: 400),
-                                duration: const Duration(milliseconds: 600),
-                                child: Row(
-                                  children: [
-                                    _statCard(
-                                      _getLocalizedString('tasks'),
-                                      "${_stats?.completedTasks ?? 0}/${_stats?.totalTasks ?? 1}",
-                                      Icons.check_circle,
-                                      Colors.green[700]!,
-                                    ),
-                                    const SizedBox(width: 16),
-                                    _statCard(
-                                      _getLocalizedString('rank'),
-                                      "#${_stats?.classRank ?? '--'}",
-                                      Icons.leaderboard,
-                                      Colors.blue[700]!,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        const SizedBox(height: 32),
-
-                        // Progress Section - NOW WITH REAL DATA!
-                        if (!_loadingStats)
+                // ===== SECTION 4: STATS CARDS =====
+                if (!_loadingStats)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           FadeInUp(
-                            delay: const Duration(milliseconds: 500),
+                            delay: const Duration(milliseconds: 300),
                             duration: const Duration(milliseconds: 600),
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Theme.of(context).scaffoldBackgroundColor,
-                                    Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.grey[800]!
-                                        : Colors.grey[50]!,
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
+                            child: Row(
+                              children: [
+                                _statCard(
+                                  _getLocalizedString('points'),
+                                  "${_stats?.totalPoints ?? 0}",
+                                  Icons.star,
+                                  Colors.orange[700]!,
                                 ),
-                                borderRadius: BorderRadius.circular(24),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.08),
-                                    blurRadius: 15,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _getLocalizedString('task_progress'),
-                                    style: GoogleFonts.poppins(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w700,
-                                      color: Theme.of(
-                                        context,
-                                      ).textTheme.titleLarge?.color,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-                                  LinearProgressIndicator(
-                                    value: _stats?.overallProgress ?? 0.0,
-                                    backgroundColor:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.grey[700]!
-                                        : Colors.grey[200]!,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.green[700]!,
-                                    ),
-                                    minHeight: 10,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        "${_stats?.completedTasks ?? 0} ${_getLocalizedString('completed')}",
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.green[700],
-                                        ),
-                                      ),
-                                      Text(
-                                        "${_stats?.totalTasks ?? 1} ${_getLocalizedString('total')}",
-                                        style: GoogleFonts.poppins(
-                                          fontSize: 14,
-                                          color: Theme.of(
-                                            context,
-                                          ).textTheme.bodyMedium?.color,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                const SizedBox(width: 16),
+                                _statCard(
+                                  _getLocalizedString('streak'),
+                                  "${_stats?.currentStreak ?? 0} ${_getLocalizedString('days')}",
+                                  Icons.local_fire_department,
+                                  Colors.red[700]!,
+                                ),
+                              ],
                             ),
                           ),
-                        const SizedBox(height: 32),
+                          const SizedBox(height: 16),
+                          FadeInUp(
+                            delay: const Duration(milliseconds: 400),
+                            duration: const Duration(milliseconds: 600),
+                            child: Row(
+                              children: [
+                                _statCard(
+                                  _getLocalizedString('tasks'),
+                                  "${_stats?.completedTasks ?? 0}/${_stats?.totalTasks ?? 1}",
+                                  Icons.check_circle,
+                                  Colors.green[700]!,
+                                ),
+                                const SizedBox(width: 16),
+                                _statCard(
+                                  _getLocalizedString('rank'),
+                                  "#${_stats?.classRank ?? '--'}",
+                                  Icons.leaderboard,
+                                  Colors.blue[700]!,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 32), // Section separator
+                        ],
+                      ),
+                    ),
+                  ),
 
-                        // Info Cards
+                // ===== SECTION 5: PROGRESS BAR =====
+                if (!_loadingStats)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: FadeInUp(
+                        delay: const Duration(milliseconds: 500),
+                        duration: const Duration(milliseconds: 600),
+                        child: _progressCard(),
+                      ),
+                    ),
+                  ),
+
+                // ===== SECTION 6: INFO CARDS =====
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    child: Column(
+                      children: [
                         FadeInUp(
                           delay: const Duration(milliseconds: 600),
                           duration: const Duration(milliseconds: 600),
@@ -767,119 +680,18 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                             Icons.phone_outlined,
                           ),
                         ),
+                        const SizedBox(height: 32), // Section separator
+                      ],
+                    ),
+                  ),
+                ),
 
-                        const SizedBox(height: 24),
-
-                        // Settings Card - NEW
-                        FadeInUp(
-                          delay: const Duration(milliseconds: 720),
-                          duration: const Duration(milliseconds: 600),
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SettingsScreen(),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    Theme.of(context).scaffoldBackgroundColor,
-                                    Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.grey[800]!
-                                        : Colors.grey[50]!,
-                                  ],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Theme.of(context).brightness ==
-                                              Brightness.dark
-                                          ? Colors.blue[900]
-                                          : Colors.blue[50],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: Center(
-                                      child: Icon(
-                                        Icons.settings,
-                                        color:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.blue[300]
-                                            : Colors.blue[700],
-                                        size: 24,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          _getLocalizedString('settings'),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w700,
-                                            color: Theme.of(
-                                              context,
-                                            ).textTheme.titleLarge?.color,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          _getLocalizedString(
-                                            'language_appearance',
-                                          ),
-                                          style: GoogleFonts.poppins(
-                                            fontSize: 13,
-                                            color: Theme.of(
-                                              context,
-                                            ).textTheme.bodyMedium?.color,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  Icon(
-                                    Icons.arrow_forward_ios,
-                                    size: 18,
-                                    color:
-                                        Theme.of(context).brightness ==
-                                            Brightness.dark
-                                        ? Colors.grey[500]
-                                        : Colors.grey[400],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        const SizedBox(height: 36),
-
-                        // Action Buttons
+                // ===== SECTION 7: ACTION BUTTONS =====
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      children: [
                         FadeInUp(
                           delay: const Duration(milliseconds: 750),
                           duration: const Duration(milliseconds: 600),
@@ -887,19 +699,13 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               onPressed: () {
-                                // Navigate to edit screen
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
                                         const StudentEditScreen(),
                                   ),
-                                ).then((_) {
-                                  // Refresh stats when returning from edit screen
-                                  if (mounted) {
-                                    _loadStats();
-                                  }
-                                });
+                                ).then((_) => mounted ? _loadStats() : null);
                               },
                               icon: const Icon(Icons.edit, size: 20),
                               label: Text(
@@ -922,97 +728,18 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                elevation: 3,
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 18),
-                        // ✅ FIXED LOGOUT BUTTON
+                        const SizedBox(height: 16),
                         FadeInUp(
                           delay: const Duration(milliseconds: 800),
                           duration: const Duration(milliseconds: 600),
                           child: SizedBox(
                             width: double.infinity,
                             child: OutlinedButton.icon(
-                              onPressed: () async {
-                                try {
-                                  // Show confirmation dialog
-                                  final confirm = await showDialog<bool>(
-                                    context: context,
-                                    builder: (context) => AlertDialog(
-                                      title: Text(
-                                        _getLocalizedString('confirm_logout'),
-                                        style: GoogleFonts.poppins(
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                      content: Text(
-                                        _getLocalizedString(
-                                          'logout_confirm_message',
-                                        ),
-                                        style: GoogleFonts.poppins(),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, false),
-                                          child: Text(
-                                            _getLocalizedString('cancel'),
-                                            style: GoogleFonts.poppins(),
-                                          ),
-                                        ),
-                                        ElevatedButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context, true),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor:
-                                                Theme.of(context).brightness ==
-                                                    Brightness.dark
-                                                ? Colors.red[800]
-                                                : Colors.red[700],
-                                          ),
-                                          child: Text(
-                                            _getLocalizedString(
-                                              'logout_button',
-                                            ),
-                                            style: GoogleFonts.poppins(
-                                              color: Colors.white,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-
-                                  if (confirm == true && mounted) {
-                                    // Sign out from Firebase
-                                    await FirebaseAuth.instance.signOut();
-
-                                    // Navigate to login screen and clear all previous routes
-                                    Navigator.pushNamedAndRemoveUntil(
-                                      context,
-                                      '/login',
-                                      (Route<dynamic> route) => false,
-                                    );
-                                  }
-                                } catch (e) {
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text(
-                                          "${_getLocalizedString('logout_failed')}$e",
-                                        ),
-                                        backgroundColor:
-                                            Theme.of(context).brightness ==
-                                                Brightness.dark
-                                            ? Colors.red[800]
-                                            : Colors.red[700],
-                                      ),
-                                    );
-                                  }
-                                }
-                              },
+                              onPressed: _showLogoutDialog,
                               icon: const Icon(Icons.logout, size: 20),
                               label: Text(
                                 _getLocalizedString('logout'),
@@ -1040,11 +767,11 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(16),
                                 ),
-                                elevation: 2,
                               ),
                             ),
                           ),
                         ),
+                        const SizedBox(height: 40), // Bottom padding
                       ],
                     ),
                   ),
@@ -1057,103 +784,211 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     );
   }
 
-  Widget _statCard(String title, String value, IconData icon, Color color) {
-    return Expanded(
-      child: FadeIn(
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                color.withOpacity(0.1),
-                Theme.of(context).scaffoldBackgroundColor,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
+  void _showLogoutDialog() async {
+    try {
+      final confirm = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(
+            _getLocalizedString('confirm_logout'),
+            style: GoogleFonts.poppins(fontWeight: FontWeight.w700),
+          ),
+          content: Text(
+            _getLocalizedString('logout_confirm_message'),
+            style: GoogleFonts.poppins(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(
+                _getLocalizedString('cancel'),
+                style: GoogleFonts.poppins(),
+              ),
             ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: color.withOpacity(0.15),
-                blurRadius: 15,
-                offset: const Offset(0, 5),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).brightness == Brightness.dark
+                    ? Colors.red[800]
+                    : Colors.red[700],
               ),
-            ],
-            border: Border.all(color: color.withOpacity(0.2), width: 1.5),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(child: Icon(icon, color: color, size: 24)),
+              child: Text(
+                _getLocalizedString('logout_button'),
+                style: GoogleFonts.poppins(color: Colors.white),
               ),
-              const SizedBox(height: 12),
-              Text(
-                title,
-                style: GoogleFonts.poppins(
-                  fontSize: 13,
-                  color: Theme.of(context).textTheme.bodyMedium?.color,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                value,
-                style: GoogleFonts.poppins(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w800,
-                  color: color,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _infoCard(String title, String subtitle, IconData icon) {
-    return FadeIn(
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Theme.of(context).scaffoldBackgroundColor,
-              Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey[800]!
-                  : Colors.grey[50]!,
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
             ),
           ],
         ),
-        child: Row(
+      );
+
+      if (confirm == true && mounted) {
+        // Show immediate feedback
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_getLocalizedString('logging_out')),
+            duration: const Duration(seconds: 2),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.blue[800]
+                : Colors.blue[700],
+          ),
+        );
+
+        await FirebaseAuth.instance.signOut();
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/login',
+          (Route<dynamic> route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("${_getLocalizedString('logout_failed')}$e"),
+            backgroundColor: Theme.of(context).brightness == Brightness.dark
+                ? Colors.red[800]
+                : Colors.red[700],
+          ),
+        );
+      }
+    }
+  }
+
+  // ===== UNIFIED CARD COMPONENTS =====
+
+  Widget _statCard(String title, String value, IconData icon, Color color) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          color: Theme.of(context).cardColor,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: color.withOpacity(0.25), width: 1.5),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
               width: 44,
               height: 44,
               decoration: BoxDecoration(
+                color: color.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(child: Icon(icon, color: color, size: 24)),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: GoogleFonts.poppins(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: color,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _progressCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey[700]!
+              : Colors.grey[200]!,
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _getLocalizedString('task_progress'),
+            style: GoogleFonts.poppins(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Theme.of(context).textTheme.titleLarge?.color,
+            ),
+          ),
+          const SizedBox(height: 16),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: _stats?.overallProgress ?? 0.0,
+              backgroundColor: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.grey[700]!
+                  : Colors.grey[200]!,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.green[700]!),
+              minHeight: 10,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "${_stats?.completedTasks ?? 0} ${_getLocalizedString('completed')}",
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.green[700],
+                ),
+              ),
+              Text(
+                "${_stats?.totalTasks ?? 1} ${_getLocalizedString('total')}",
+                style: GoogleFonts.poppins(
+                  fontSize: 14,
+                  color: Theme.of(context).textTheme.bodyMedium?.color,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _infoCard(String title, String subtitle, IconData icon) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? Colors.grey[700]!
+              : Colors.grey[200]!,
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
                 color: Theme.of(context).brightness == Brightness.dark
                     ? Colors.blue[900]
                     : Colors.blue[50],
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Center(
                 child: Icon(
@@ -1161,7 +996,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   color: Theme.of(context).brightness == Brightness.dark
                       ? Colors.blue[300]
                       : Colors.blue[700],
-                  size: 24,
+                  size: 22,
                 ),
               ),
             ),
@@ -1173,9 +1008,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   Text(
                     title,
                     style: GoogleFonts.poppins(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Theme.of(context).textTheme.titleLarge?.color,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).textTheme.bodyMedium?.color,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -1191,13 +1026,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   ),
                 ],
               ),
-            ),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 18,
-              color: Theme.of(context).brightness == Brightness.dark
-                  ? Colors.grey[500]
-                  : Colors.grey[400],
             ),
           ],
         ),
