@@ -1,5 +1,6 @@
 import 'package:edu_connect/presintation/teachers_things/anouncement/teacher_anouncement_screen.dart';
 import 'package:edu_connect/presintation/teachers_things/courses/teacher_course_screen.dart';
+import 'package:edu_connect/presintation/teachers_things/notes/note_Screen.dart';
 import 'package:edu_connect/presintation/teachers_things/quick_action.dart';
 import 'package:edu_connect/presintation/teachers_things/task/Teacher_task_list_screen.dart';
 import 'package:edu_connect/presintation/teachers_things/teacher_screens/anouncement_section.dart';
@@ -197,6 +198,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 context,
                 MaterialPageRoute(
                   builder: (context) => const TeacherAnnouncementScreen(),
+                ),
+              ),
+              onNotesPressed: () => Navigator.push(
+                // ✅ ADD THIS MISSING PARAMETER
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const TeacherNotesScreen(),
                 ),
               ),
             ),

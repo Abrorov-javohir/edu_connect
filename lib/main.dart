@@ -3,6 +3,8 @@ import 'package:edu_connect/presintation/teachers_things/cubit/anouncement_cubit
 import 'package:edu_connect/presintation/teachers_things/cubit/course_cubit.dart';
 import 'package:edu_connect/presintation/teachers_things/cubit/home_cubit.dart';
 import 'package:edu_connect/presintation/teachers_things/cubit/student_cubit.dart';
+import 'package:edu_connect/presintation/teachers_things/notes/note_Screen.dart';
+import 'package:edu_connect/presintation/teachers_things/notes/note_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -99,6 +101,7 @@ class EduConnectApp extends StatelessWidget {
               foregroundColor: Colors.white,
               elevation: 0,
             ),
+
             cardTheme: CardThemeData(
               // Fixed: Changed from CardTheme to CardThemeData
               color: const Color(0xFF1E1E1E),
@@ -133,7 +136,7 @@ class EduConnectApp extends StatelessWidget {
             '/register': (context) => const RegisterScreen(),
             '/reset_password': (context) => const ResetPasswordScreen(),
             '/teacher_home': (context) => const TeacherScreen(),
-            // '/teacher_chat': (context) => const TeacherChatScreen(), // ✅ Added
+            '/teacher_chat': (context) => const TeacherChatScreen(), // ✅ Added
             '/student_home': (context) => const StudentHomeScreen(),
             '/student_profile': (context) => const StudentProfileScreen(),
             '/student_calendar': (context) => const StudentCalendarScreen(),
@@ -142,6 +145,9 @@ class EduConnectApp extends StatelessWidget {
             '/student_progress': (context) => const StudentProgressScreen(),
             '/teacher_notifications': (context) =>
                 const TeacherNotificationsScreen(),
+            '/teacher_notes': (context) => const TeacherNotesScreen(),
+            '/teacher_note_detail': (context) =>
+                const TeacherNoteDetailScreen(),
           },
         );
       },
