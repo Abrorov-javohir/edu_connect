@@ -1,4 +1,6 @@
 // screens/student_edit_screen.dart
+import 'dart:async';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edu_connect/providers/language_provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -7,7 +9,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
-import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 class StudentEditScreen extends StatefulWidget {
   const StudentEditScreen({super.key});
@@ -18,8 +22,11 @@ class StudentEditScreen extends StatefulWidget {
 
 class _StudentEditScreenState extends State<StudentEditScreen> {
   final _formKey = GlobalKey<FormState>();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   File? _imageFile;
+  String? _localImagePath; // Local file path
   bool _loading = true;
 
   late final TextEditingController nameController;
@@ -27,134 +34,9 @@ class _StudentEditScreenState extends State<StudentEditScreen> {
   late final TextEditingController gradeController;
   late final TextEditingController passwordController;
 
-  String _getLocalizedString(String key) {
-    final language = context.read<LanguageProvider>().currentLanguage;
-    switch (language) {
-      case 'uz':
-        switch (key) {
-          case 'edit_profile':
-            return "Profilni Tahrirlash";
-          case 'full_name':
-            return "To'liq Ism";
-          case 'phone_number':
-            return "Telefon Raqam";
-          case 'new_password':
-            return "Yangi Parol (Ixtiyoriy)";
-          case 'enter_full_name':
-            return "Iltimos, to'liq ismingizni kiriting";
-          case 'valid_phone':
-            return "Iltimos, to'g'ri telefon raqam kiriting";
-          case 'password_min_length':
-            return "Parol kamida 6 ta belgidan iborat bo'lishi kerak";
-          case 'save_changes':
-            return "O'zgarishlarni Saqlash";
-          case 'cancel':
-            return "Bekor Qilish";
-          case 're_authenticate':
-            return "Qayta Autentifikatsiya";
-          case 'current_password_prompt':
-            return "Profilni yangilash uchun joriy parolingizni kiriting: ";
-          case 'current_password':
-            return "Joriy Parol";
-          case 'confirm':
-            return "Tasdiqlash";
-          case 'profile_updated_success':
-            return "Profil muvaffaqiyatli yangilandi!";
-          case 'failed_update_profile':
-            return "Profilni yangilashda xatolik yuz berdi: ";
-          case 'failed_pick_image':
-            return "Rasm tanlashda xatolik yuz berdi: ";
-          case 're_auth_failed':
-            return "Qayta autentifikatsiya amalga oshmadi: ";
-          default:
-            return key;
-        }
-      case 'ru':
-        switch (key) {
-          case 'edit_profile':
-            return "Редактировать Профиль";
-          case 'full_name':
-            return "Полное Имя";
-          case 'phone_number':
-            return "Номер Телефона";
-          case 'new_password':
-            return "Новый Пароль (необязательно)";
-          case 'enter_full_name':
-            return "Пожалуйста, введите ваше полное имя";
-          case 'valid_phone':
-            return "Пожалуйста, введите действительный номер телефона";
-          case 'password_min_length':
-            return "Пароль должен содержать не менее 6 символов";
-          case 'save_changes':
-            return "Сохранить Изменения";
-          case 'cancel':
-            return "Отмена";
-          case 're_authenticate':
-            return "Повторная аутентификация";
-          case 'current_password_prompt':
-            return "Введите текущий пароль для обновления профиля: ";
-          case 'current_password':
-            return "Текущий Пароль";
-          case 'confirm':
-            return "Подтвердить";
-          case 'profile_updated_success':
-            return "Профиль успешно обновлен!";
-          case 'failed_update_profile':
-            return "Не удалось обновить профиль: ";
-          case 'failed_pick_image':
-            return "Не удалось выбрать изображение: ";
-          case 're_auth_failed':
-            return "Повторная аутентификация не удалась: ";
-          default:
-            return key;
-        }
-      case 'en':
-      default:
-        switch (key) {
-          case 'edit_profile':
-            return "Edit Profile";
-          case 'full_name':
-            return "Full Name";
-          case 'phone_number':
-            return "Phone Number";
-          case 'new_password':
-            return "New Password (Optional)";
-          case 'enter_full_name':
-            return "Please enter your full name";
-          case 'valid_phone':
-            return "Please enter a valid phone number";
-          case 'password_min_length':
-            return "Password must be at least 6 characters";
-          case 'save_changes':
-            return "Save Changes";
-          case 'cancel':
-            return "Cancel";
-          case 're_authenticate':
-            return "Re-authenticate";
-          case 'current_password_prompt':
-            return "Enter your current password to update profile: ";
-          case 'current_password':
-            return "Current Password";
-          case 'confirm':
-            return "Confirm";
-          case 'profile_updated_success':
-            return "Profile updated successfully!";
-          case 'failed_update_profile':
-            return "Failed to update profile: ";
-          case 'failed_pick_image':
-            return "Failed to pick image: ";
-          case 're_auth_failed':
-            return "Re-authentication failed: ";
-          default:
-            return key;
-        }
-    }
-  }
-
   @override
   void initState() {
     super.initState();
-    // Initialize controllers here to avoid memory leaks
     nameController = TextEditingController();
     phoneController = TextEditingController();
     gradeController = TextEditingController();
@@ -164,7 +46,6 @@ class _StudentEditScreenState extends State<StudentEditScreen> {
 
   @override
   void dispose() {
-    // Clean up controllers to prevent memory leaks
     nameController.dispose();
     phoneController.dispose();
     gradeController.dispose();
@@ -174,16 +55,13 @@ class _StudentEditScreenState extends State<StudentEditScreen> {
 
   Future<void> loadData() async {
     try {
-      final user = FirebaseAuth.instance.currentUser;
+      final user = _auth.currentUser;
       if (user == null) {
         if (mounted) Navigator.pop(context);
         return;
       }
 
-      final doc = await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .get();
+      final doc = await _firestore.collection("users").doc(user.uid).get();
 
       if (doc.exists && mounted) {
         final data = doc.data()!;
@@ -192,7 +70,12 @@ class _StudentEditScreenState extends State<StudentEditScreen> {
         gradeController.text = data["grade"] ?? "";
         passwordController.text = "";
 
-        setState(() => _loading = false);
+        // Load local image path with proper null handling
+        await _loadLocalImagePath(user.uid);
+
+        if (mounted) {
+          setState(() => _loading = false);
+        }
       } else if (mounted) {
         setState(() => _loading = false);
       }
@@ -200,11 +83,40 @@ class _StudentEditScreenState extends State<StudentEditScreen> {
       print("Error loading data: $e");
       if (mounted) {
         setState(() => _loading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("${_getLocalizedString('failed_update_profile')}$e"),
-          ),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to load data: $e")));
+      }
+    }
+  }
+
+  Future<void> _loadLocalImagePath(String userId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final imagePath = prefs.getString('profile_image_path_$userId');
+
+      // Only set if file actually exists
+      if (imagePath != null && File(imagePath).existsSync()) {
+        if (mounted) {
+          setState(() {
+            _localImagePath = imagePath;
+          });
+        }
+      } else {
+        // Clear invalid path from preferences
+        await prefs.remove('profile_image_path_$userId');
+        if (mounted) {
+          setState(() {
+            _localImagePath = null;
+          });
+        }
+      }
+    } catch (e) {
+      print("Error loading image path: $e");
+      if (mounted) {
+        setState(() {
+          _localImagePath = null;
+        });
       }
     }
   }
@@ -214,24 +126,87 @@ class _StudentEditScreenState extends State<StudentEditScreen> {
       final picked = await ImagePicker().pickImage(source: ImageSource.gallery);
 
       if (picked != null && mounted) {
-        setState(() {
-          _imageFile = File(picked.path);
-        });
+        // Compress image before saving locally
+        final compressedBytes = await FlutterImageCompress.compressWithFile(
+          picked.path,
+          quality: 85,
+          minHeight: 400,
+          minWidth: 400,
+        );
+
+        if (compressedBytes != null) {
+          // Get app directory
+          final dir = await getApplicationDocumentsDirectory();
+          final fileName = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final filePath = '${dir.path}/profile_$fileName';
+
+          final file = File(filePath);
+          await file.writeAsBytes(compressedBytes);
+
+          if (mounted) {
+            setState(() {
+              _imageFile = file;
+              _localImagePath = filePath;
+            });
+          }
+        } else {
+          final file = File(picked.path);
+          if (mounted) {
+            setState(() {
+              _imageFile = file;
+              _localImagePath = picked.path;
+            });
+          }
+        }
       }
     } catch (e) {
       print("Error picking image: $e");
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("${_getLocalizedString('failed_pick_image')}$e"),
-          ),
+        setState(() {
+          _imageFile = null;
+          _localImagePath = null;
+        });
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to pick image: $e")));
+      }
+    }
+  }
+
+  Future<void> saveImageToPrefs() async {
+    final user = _auth.currentUser;
+    if (user == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+
+      // Only save if file exists
+      if (_localImagePath != null && File(_localImagePath!).existsSync()) {
+        await prefs.setString(
+          'profile_image_path_${user.uid}',
+          _localImagePath!,
         );
+      } else {
+        // Remove invalid path
+        await prefs.remove('profile_image_path_${user.uid}');
+        if (mounted) {
+          setState(() {
+            _localImagePath = null;
+          });
+        }
+      }
+    } catch (e) {
+      print("Error saving image to prefs: $e");
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text("Failed to save image: $e")));
       }
     }
   }
 
   Future<bool> reauthenticateUser() async {
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
     if (user == null) return false;
 
     try {
@@ -345,52 +320,41 @@ class _StudentEditScreenState extends State<StudentEditScreen> {
   Future<void> _saveChanges() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final user = FirebaseAuth.instance.currentUser;
+    final user = _auth.currentUser;
     if (user == null) return;
 
     try {
-      // Show loading indicator
       if (mounted) {
         setState(() => _loading = true);
       }
 
-      // Update Firestore fields first
-      await FirebaseFirestore.instance
-          .collection("users")
-          .doc(user.uid)
-          .update({
-            "name": nameController.text.trim(),
-            "phone": phoneController.text.trim(),
-            "grade": gradeController.text.trim(),
-          });
+      // Save image to local storage and preferences first
+      if (_imageFile != null) {
+        await saveImageToPrefs();
+      }
 
-      // Update password if provided (with re-authentication)
+      // Update Firestore fields
+      await _firestore.collection("users").doc(user.uid).update({
+        "name": nameController.text.trim(),
+        "phone": phoneController.text.trim(),
+        "grade": gradeController.text.trim(),
+      });
+
+      // Update password if provided
       if (passwordController.text.trim().isNotEmpty) {
         bool authenticated = await reauthenticateUser();
         if (authenticated) {
           await user.updatePassword(passwordController.text.trim());
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(_getLocalizedString('profile_updated_success')),
-                backgroundColor: Colors.green,
-              ),
-            );
-          }
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(_getLocalizedString('profile_updated_success')),
-              backgroundColor: Colors.green,
-            ),
-          );
         }
       }
 
-      // Navigate back only if widget is still mounted
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_getLocalizedString('profile_updated_success')),
+            backgroundColor: Colors.green,
+          ),
+        );
         Navigator.pop(context);
       }
     } catch (e) {
@@ -406,6 +370,82 @@ class _StudentEditScreenState extends State<StudentEditScreen> {
           ),
         );
       }
+    }
+  }
+
+  String _getLocalizedString(String key) {
+    final language = context.read<LanguageProvider>().currentLanguage;
+    switch (language) {
+      case 'uz':
+        return {
+              'edit_profile': "Profilni Tahrirlash",
+              'full_name': "To'liq Ism",
+              'phone_number': "Telefon Raqam",
+              'new_password': "Yangi Parol (Ixtiyoriy)",
+              'enter_full_name': "Iltimos, to'liq ismingizni kiriting",
+              'valid_phone': "Iltimos, to'g'ri telefon raqam kiriting",
+              'password_min_length':
+                  "Parol kamida 6 ta belgidan iborat bo'lishi kerak",
+              'save_changes': "O'zgarishlarni Saqlash",
+              'cancel': "Bekor Qilish",
+              're_authenticate': "Qayta Autentifikatsiya",
+              'current_password_prompt':
+                  "Profilni yangilash uchun joriy parolingizni kiriting: ",
+              'current_password': "Joriy Parol",
+              'confirm': "Tasdiqlash",
+              'profile_updated_success': "Profil muvaffaqiyatli yangilandi!",
+              'failed_update_profile':
+                  "Profilni yangilashda xatolik yuz berdi: ",
+              'failed_pick_image': "Rasm tanlashda xatolik yuz berdi: ",
+              're_auth_failed': "Qayta autentifikatsiya amalga oshmadi: ",
+            }[key] ??
+            key;
+      case 'ru':
+        return {
+              'edit_profile': "Редактировать Профиль",
+              'full_name': "Полное Имя",
+              'phone_number': "Номер Телефона",
+              'new_password': "Новый Пароль (необязательно)",
+              'enter_full_name': "Пожалуйста, введите ваше полное имя",
+              'valid_phone':
+                  "Пожалуйста, введите действительный номер телефона",
+              'password_min_length':
+                  "Пароль должен содержать не менее 6 символов",
+              'save_changes': "Сохранить Изменения",
+              'cancel': "Отмена",
+              're_authenticate': "Повторная аутентификация",
+              'current_password_prompt':
+                  "Введите текущий пароль для обновления профиля: ",
+              'current_password': "Текущий Пароль",
+              'confirm': "Подтвердить",
+              'profile_updated_success': "Профиль успешно обновлен!",
+              'failed_update_profile': "Не удалось обновить профиль: ",
+              'failed_pick_image': "Не удалось выбрать изображение: ",
+              're_auth_failed': "Повторная аутентификация не удалась: ",
+            }[key] ??
+            key;
+      default:
+        return {
+              'edit_profile': "Edit Profile",
+              'full_name': "Full Name",
+              'phone_number': "Phone Number",
+              'new_password': "New Password (Optional)",
+              'enter_full_name': "Please enter your full name",
+              'valid_phone': "Please enter a valid phone number",
+              'password_min_length': "Password must be at least 6 characters",
+              'save_changes': "Save Changes",
+              'cancel': "Cancel",
+              're_authenticate': "Re-authenticate",
+              'current_password_prompt':
+                  "Enter your current password to update profile: ",
+              'current_password': "Current Password",
+              'confirm': "Confirm",
+              'profile_updated_success': "Profile updated successfully!",
+              'failed_update_profile': "Failed to update profile: ",
+              'failed_pick_image': "Failed to pick image: ",
+              're_auth_failed': "Re-authentication failed: ",
+            }[key] ??
+            key;
     }
   }
 
@@ -494,7 +534,15 @@ class _StudentEditScreenState extends State<StudentEditScreen> {
                           ],
                         ),
                         child: ClipOval(
-                          child: _imageFile != null
+                          // ✅ FIXED: Use Image.file for local files, NOT CachedNetworkImage
+                          child:
+                              _localImagePath != null &&
+                                  File(_localImagePath!).existsSync()
+                              ? Image.file(
+                                  File(_localImagePath!),
+                                  fit: BoxFit.cover,
+                                )
+                              : _imageFile != null
                               ? Image.file(_imageFile!, fit: BoxFit.cover)
                               : Icon(
                                   Icons.person,

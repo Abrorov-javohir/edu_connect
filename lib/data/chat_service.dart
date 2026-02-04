@@ -1,4 +1,4 @@
-// data/chat_service.dart (Simplified - No Notifications)
+// data/chat_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -11,6 +11,7 @@ class ChatService {
     if (userId == null) return [];
 
     try {
+      // Get all classes where this student is enrolled
       final classStudentsSnapshot = await _firestore
           .collection("classStudents")
           .where("studentId", isEqualTo: userId)
@@ -19,9 +20,9 @@ class ChatService {
       if (classStudentsSnapshot.docs.isEmpty) return [];
 
       final Set<String> contactIds = {};
-      final List<ChatContact> contacts = [];
+      final Map<String, String> contactRoles = {}; // Track roles
 
-      // Add teachers from enrolled classes
+      // 1. Add teachers from enrolled classes
       for (final classStudentDoc in classStudentsSnapshot.docs) {
         final classId = classStudentDoc["classId"] as String;
         final classDoc = await _firestore
@@ -33,13 +34,16 @@ class ChatService {
           final teacherId = classData["teacherId"] as String?;
           if (teacherId != null && teacherId != userId) {
             contactIds.add(teacherId);
+            contactRoles[teacherId] = "teacher";
           }
         }
       }
 
-      // Add classmates from enrolled classes
+      // 2. Add classmates from ALL enrolled classes
       for (final classStudentDoc in classStudentsSnapshot.docs) {
         final classId = classStudentDoc["classId"] as String;
+        
+        // Get ALL students in this class (including current user)
         final classmatesSnapshot = await _firestore
             .collection("classStudents")
             .where("classId", isEqualTo: classId)
@@ -47,13 +51,16 @@ class ChatService {
 
         for (final classmateDoc in classmatesSnapshot.docs) {
           final classmateId = classmateDoc["studentId"] as String;
+          // Skip current user
           if (classmateId != userId) {
             contactIds.add(classmateId);
+            contactRoles[classmateId] = "student"; // Classmates are students
           }
         }
       }
 
-      // Fetch user details and latest messages
+      // 3. Fetch user details and latest messages
+      final List<ChatContact> contacts = [];
       for (final contactId in contactIds) {
         final userDoc = await _firestore
             .collection("users")
@@ -61,6 +68,7 @@ class ChatService {
             .get();
         if (userDoc.exists) {
           final userData = userDoc.data()!;
+          final role = contactRoles[contactId] ?? "student";
 
           // Get latest message
           final chatId = getChatId(userId, contactId);
@@ -72,7 +80,7 @@ class ChatService {
               .limit(1)
               .get();
 
-          String lastMessage = "New message";
+          String lastMessage = "New conversation";
           DateTime lastMessageTime = DateTime.now();
           int unreadCount = 0;
 
@@ -81,13 +89,13 @@ class ChatService {
             lastMessage = messageData["content"] ?? "New message";
             lastMessageTime = (messageData["timestamp"] as Timestamp).toDate();
 
-            // Count unread messages
+            // Count unread messages from this contact
             if (messageData["senderId"] != userId) {
               final unreadSnapshot = await _firestore
                   .collection("chats")
                   .doc(chatId)
                   .collection("messages")
-                  .where("senderId", isNotEqualTo: userId)
+                  .where("senderId", isEqualTo: contactId)
                   .where("read", isEqualTo: false)
                   .get();
               unreadCount = unreadSnapshot.docs.length;
@@ -98,7 +106,7 @@ class ChatService {
             ChatContact(
               id: contactId,
               name: userData["name"] ?? userData["fullName"] ?? "Unknown User",
-              role: userData["role"] ?? "student",
+              role: role,
               avatarUrl: userData["imageUrl"] ?? "",
               lastMessage: lastMessage,
               lastMessageTime: lastMessageTime,
@@ -108,6 +116,7 @@ class ChatService {
         }
       }
 
+      // Sort: teachers first, then by latest message time
       contacts.sort((a, b) {
         if (a.role == "teacher" && b.role != "teacher") return -1;
         if (a.role != "teacher" && b.role == "teacher") return 1;
@@ -116,7 +125,7 @@ class ChatService {
 
       return contacts;
     } catch (e) {
-      print("Error getting contacts: $e");
+      print("Error getting student contacts: $e");
       return [];
     }
   }
@@ -183,8 +192,6 @@ class ChatService {
               doc.reference.update({"read": true});
             }
           });
-
-      // ✅ REMOVED notification code to avoid errors
     } catch (e) {
       print("Error sending message: $e");
       rethrow;

@@ -1,5 +1,6 @@
 // screens/student_profile_screen.dart
 import 'dart:async';
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:edu_connect/data/student_stat_service.dart';
 import 'package:edu_connect/presintation/student_screens/settings/settings_screen.dart';
@@ -12,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:animate_do/animate_do.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});
@@ -25,170 +27,95 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   StudentStats? _stats;
   bool _loadingStats = true;
   StreamSubscription<DocumentSnapshot>? _userSubscription;
+  String? _localImagePath; // Store local image path
 
   String _getLocalizedString(String key) {
     final language = context.read<LanguageProvider>().currentLanguage;
     switch (language) {
       case 'uz':
-        switch (key) {
-          case 'profile':
-            return "Profil";
-          case 'not_logged_in':
-            return "Kirilmagan";
-          case 'login':
-            return "Kirish";
-          case 'no_profile_data':
-            return "Profil ma'lumotlari topilmadi";
-          case 'points':
-            return "Ballar";
-          case 'streak':
-            return "Seriya";
-          case 'days':
-            return "kun";
-          case 'tasks':
-            return "Vazifalar";
-          case 'rank':
-            return "Reyting";
-          case 'task_progress':
-            return "Vazifa Rivoji";
-          case 'completed':
-            return "bajarildi";
-          case 'total':
-            return "jami";
-          case 'email':
-            return "Elektron pochta";
-          case 'grade':
-            return "Sinf";
-          case 'phone':
-            return "Telefon";
-          case 'edit_profile':
-            return "Profilni Tahrirlash";
-          case 'logout':
-            return "Chiqish";
-          case 'confirm_logout':
-            return "Chiqishni Tasdiqlang";
-          case 'logout_confirm_message':
-            return "Haqiqatan ham chiqishni xohlaysizmi?";
-          case 'cancel':
-            return "Bekor Qilish";
-          case 'logout_button':
-            return "Chiqish";
-          case 'logout_failed':
-            return "Chiqish amalga oshmadi: ";
-          case 'view_all_classes':
-            return "Barcha Sinfni Ko'rish";
-          case 'logging_out':
-            return "Chiqish...";
-          default:
-            return key;
-        }
+        return {
+              'profile': "Profil",
+              'not_logged_in': "Kirilmagan",
+              'login': "Kirish",
+              'no_profile_data': "Profil ma'lumotlari topilmadi",
+              'points': "Ballar",
+              'streak': "Seriya",
+              'days': "kun",
+              'tasks': "Vazifalar",
+              'rank': "Reyting",
+              'task_progress': "Vazifa Rivoji",
+              'completed': "bajarildi",
+              'total': "jami",
+              'email': "Elektron pochta",
+              'grade': "Sinf",
+              'phone': "Telefon",
+              'edit_profile': "Profilni Tahrirlash",
+              'logout': "Chiqish",
+              'confirm_logout': "Chiqishni Tasdiqlang",
+              'logout_confirm_message': "Haqiqatan ham chiqishni xohlaysizmi?",
+              'cancel': "Bekor Qilish",
+              'logout_button': "Chiqish",
+              'logout_failed': "Chiqish amalga oshmadi: ",
+              'view_all_classes': "Barcha Sinfni Ko'rish",
+              'logging_out': "Chiqish...",
+            }[key] ??
+            key;
       case 'ru':
-        switch (key) {
-          case 'profile':
-            return "Профиль";
-          case 'not_logged_in':
-            return "Не вошел в систему";
-          case 'login':
-            return "Войти";
-          case 'no_profile_data':
-            return "Данные профиля не найдены";
-          case 'points':
-            return "Баллы";
-          case 'streak':
-            return "Серия";
-          case 'days':
-            return "дни";
-          case 'tasks':
-            return "Задания";
-          case 'rank':
-            return "Ранг";
-          case 'task_progress':
-            return "Прогресс Заданий";
-          case 'completed':
-            return "выполнено";
-          case 'total':
-            return "всего";
-          case 'email':
-            return "Электронная почта";
-          case 'grade':
-            return "Класс";
-          case 'phone':
-            return "Телефон";
-          case 'edit_profile':
-            return "Редактировать Профиль";
-          case 'logout':
-            return "Выйти";
-          case 'confirm_logout':
-            return "Подтвердить Выход";
-          case 'logout_confirm_message':
-            return "Вы уверены, что хотите выйти?";
-          case 'cancel':
-            return "Отмена";
-          case 'logout_button':
-            return "Выйти";
-          case 'logout_failed':
-            return "Выход не удался: ";
-          case 'view_all_classes':
-            return "Посмотреть Все Классы";
-          case 'logging_out':
-            return "Выход...";
-          default:
-            return key;
-        }
-      case 'en':
+        return {
+              'profile': "Профиль",
+              'not_logged_in': "Не вошел в систему",
+              'login': "Войти",
+              'no_profile_data': "Данные профиля не найдены",
+              'points': "Баллы",
+              'streak': "Серия",
+              'days': "дни",
+              'tasks': "Задания",
+              'rank': "Ранг",
+              'task_progress': "Прогресс Заданий",
+              'completed': "выполнено",
+              'total': "всего",
+              'email': "Электронная почта",
+              'grade': "Класс",
+              'phone': "Телефон",
+              'edit_profile': "Редактировать Профиль",
+              'logout': "Выйти",
+              'confirm_logout': "Подтвердить Выход",
+              'logout_confirm_message': "Вы уверены, что хотите выйти?",
+              'cancel': "Отмена",
+              'logout_button': "Выйти",
+              'logout_failed': "Выход не удался: ",
+              'view_all_classes': "Посмотреть Все Классы",
+              'logging_out': "Выход...",
+            }[key] ??
+            key;
       default:
-        switch (key) {
-          case 'profile':
-            return "Profile";
-          case 'not_logged_in':
-            return "Not logged in";
-          case 'login':
-            return "Login";
-          case 'no_profile_data':
-            return "No profile data found";
-          case 'points':
-            return "Points";
-          case 'streak':
-            return "Streak";
-          case 'days':
-            return "days";
-          case 'tasks':
-            return "Tasks";
-          case 'rank':
-            return "Rank";
-          case 'task_progress':
-            return "Task Progress";
-          case 'completed':
-            return "completed";
-          case 'total':
-            return "total";
-          case 'email':
-            return "Email";
-          case 'grade':
-            return "Grade";
-          case 'phone':
-            return "Phone";
-          case 'edit_profile':
-            return "Edit Profile";
-          case 'logout':
-            return "Log out";
-          case 'confirm_logout':
-            return "Confirm Logout";
-          case 'logout_confirm_message':
-            return "Are you sure you want to log out?";
-          case 'cancel':
-            return "Cancel";
-          case 'logout_button':
-            return "Logout";
-          case 'logout_failed':
-            return "Logout failed: ";
-          case 'view_all_classes':
-            return "View All Classes";
-          case 'logging_out':
-            return "Logging out...";
-          default:
-            return key;
-        }
+        return {
+              'profile': "Profile",
+              'not_logged_in': "Not logged in",
+              'login': "Login",
+              'no_profile_data': "No profile data found",
+              'points': "Points",
+              'streak': "Streak",
+              'days': "days",
+              'tasks': "Tasks",
+              'rank': "Rank",
+              'task_progress': "Task Progress",
+              'completed': "completed",
+              'total': "total",
+              'email': "Email",
+              'grade': "Grade",
+              'phone': "Phone",
+              'edit_profile': "Edit Profile",
+              'logout': "Log out",
+              'confirm_logout': "Confirm Logout",
+              'logout_confirm_message': "Are you sure you want to log out?",
+              'cancel': "Cancel",
+              'logout_button': "Logout",
+              'logout_failed': "Logout failed: ",
+              'view_all_classes': "View All Classes",
+              'logging_out': "Logging out...",
+            }[key] ??
+            key;
     }
   }
 
@@ -196,6 +123,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   void initState() {
     super.initState();
     _loadStats();
+    _loadLocalImage(); // Load local image on init
+
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid != null) {
       _userSubscription = FirebaseFirestore.instance
@@ -214,6 +143,35 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   void dispose() {
     _userSubscription?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadLocalImage() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final imagePath = prefs.getString('profile_image_path_${user.uid}');
+
+      // ✅ CRITICAL: Only set if file actually exists
+      String? validPath;
+      if (imagePath != null && File(imagePath).existsSync()) {
+        validPath = imagePath;
+      }
+
+      if (mounted) {
+        setState(() {
+          _localImagePath = validPath;
+        });
+      }
+    } catch (e) {
+      print("Error loading local image: $e");
+      if (mounted) {
+        setState(() {
+          _localImagePath = null;
+        });
+      }
+    }
   }
 
   Future<void> _loadStats() async {
@@ -396,9 +354,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             final phone = data["phone"] ?? "Not provided";
             final grade = data["grade"] ?? "Not set";
             final role = data["role"] ?? "student";
-            final imageUrl =
-                data["imageUrl"]?.toString() ??
-                "https://images.icon-icons.com/2643/PNG/512/male_man_people_person_avatar_white_tone_icon_159363.png";
 
             return CustomScrollView(
               slivers: [
@@ -427,19 +382,23 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                               ],
                             ),
                             child: ClipOval(
-                              child: Container(
-                                color:
-                                    Theme.of(context).brightness ==
-                                        Brightness.dark
-                                    ? Colors.grey[700]
-                                    : Colors.grey[300],
-                                child: Image.network(
-                                  imageUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      const Icon(Icons.person, size: 60),
-                                ),
-                              ),
+                              // ✅ FIXED: Use Image.file for local files, NOT CachedNetworkImage
+                              child:
+                                  _localImagePath != null &&
+                                      File(_localImagePath!).existsSync()
+                                  ? Image.file(
+                                      File(_localImagePath!),
+                                      fit: BoxFit.cover,
+                                    )
+                                  : Icon(
+                                      Icons.person,
+                                      size: 60,
+                                      color:
+                                          Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.grey[400]
+                                          : Colors.grey,
+                                    ),
                             ),
                           ),
                           Positioned(
@@ -705,7 +664,12 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                                     builder: (context) =>
                                         const StudentEditScreen(),
                                   ),
-                                ).then((_) => mounted ? _loadStats() : null);
+                                ).then((_) {
+                                  if (mounted) {
+                                    _loadStats();
+                                    _loadLocalImage(); // Reload image after edit
+                                  }
+                                });
                               },
                               icon: const Icon(Icons.edit, size: 20),
                               label: Text(
@@ -822,7 +786,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       );
 
       if (confirm == true && mounted) {
-        // Show immediate feedback
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(_getLocalizedString('logging_out')),
