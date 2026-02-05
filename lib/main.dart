@@ -123,7 +123,7 @@ class EduConnectApp extends StatelessWidget {
           supportedLocales: const [
             Locale('en', ''), // English
             Locale('uz', ''), // Uzbek
-            Locale('ru', ''), // Russian
+            Locale('ru', 'P'), // Russian
           ],
           locale: Locale(languageProvider.currentLanguage, ''),
 
@@ -134,7 +134,7 @@ class EduConnectApp extends StatelessWidget {
             '/onboarding': (context) => const OnboardingScreen(),
             '/login': (context) => const LoginScreen(),
             '/register': (context) => const RegisterScreen(),
-            '/reset_password': (context) => const ResetPasswordScreen(),
+            '/reset_password': (context) => const ResetPasswordScreen(),  
             '/teacher_home': (context) => const TeacherScreen(),
             '/teacher_chat': (context) => const TeacherChatScreen(), // ✅ Added
             '/student_home': (context) => const StudentHomeScreen(),
