@@ -885,47 +885,53 @@ class _StudentProgressScreenState extends State<StudentProgressScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).scaffoldBackgroundColor,
-                  Theme.of(context).brightness == Brightness.dark
-                      ? Colors.grey[800]!
-                      : Colors.grey[50]!,
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Theme.of(context).scaffoldBackgroundColor,
+                    Theme.of(context).brightness == Brightness.dark
+                        ? Colors.grey[800]!
+                        : Colors.grey[50]!,
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 15,
+                    offset: const Offset(0, 5),
+                  ),
                 ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
               ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 15,
-                  offset: const Offset(0, 5),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _achievementBadge(
-                  _getLocalizedString('star_student'),
-                  Icons.star,
-                  Colors.orange[700]!,
-                ),
-                _achievementBadge(
-                  _getLocalizedString('fire_streak'),
-                  Icons.local_fire_department,
-                  Colors.red[700]!,
-                ),
-                _achievementBadge(
-                  _getLocalizedString('top_performer'),
-                  Icons.emoji_events,
-                  Colors.blue[700]!,
-                ),
-              ],
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _achievementBadge(
+                    _getLocalizedString('star_student'),
+                    Icons.star,
+                    Colors.orange[700]!,
+                  ),
+                  SizedBox(width: 24),
+                  _achievementBadge(
+                    _getLocalizedString('fire_streak'),
+                    Icons.local_fire_department,
+                    Colors.red[700]!,
+                  ),
+                  SizedBox(width: 24),
+
+                  _achievementBadge(
+                    _getLocalizedString('top_performer'),
+                    Icons.emoji_events,
+                    Colors.blue[700]!,
+                  ),
+                ],
+              ),
             ),
           ),
         ],

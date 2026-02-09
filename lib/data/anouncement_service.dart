@@ -29,73 +29,50 @@ class AnnouncementService {
 
       if (classIds.isEmpty) return [];
 
-      // Load announcements for these classes - OPTIMIZED: Use limit for better performance
+      // Load announcements for these classes
       final announcementsSnapshot = await _firestore
           .collection("announcements")
           .where("classId", whereIn: classIds)
           .orderBy("createdAt", descending: true)
-          .limit(5) // Limit to 5 announcements for better performance
+          .limit(5)
           .get();
 
       final List<Announcement> announcements = [];
 
       for (final doc in announcementsSnapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
-
-        // Handle different possible field names with proper null safety
-        String title = "New Announcement";
-        String content = "No description available";
-        DateTime createdAt = DateTime.now();
-        String teacherName = "Teacher";
-        String className = "Class";
-
-        // Title handling
-        if (data.containsKey('title') && data['title'] != null) {
-          title = data['title'] as String;
-        } else if (data.containsKey('announcementTitle') &&
-            data['announcementTitle'] != null) {
-          title = data['announcementTitle'] as String;
-        }
-
-        // Content handling
-        if (data.containsKey('content') && data['content'] != null) {
-          content = data['content'] as String;
-        } else if (data.containsKey('description') &&
-            data['description'] != null) {
-          content = data['description'] as String;
-        } else if (data.containsKey('announcementContent') &&
-            data['announcementContent'] != null) {
-          content = data['announcementContent'] as String;
-        }
-
-        // Date handling
-        if (data.containsKey('createdAt') && data['createdAt'] != null) {
-          final createdAtField = data['createdAt'];
-          if (createdAtField is Timestamp) {
-            createdAt = createdAtField.toDate();
-          } else if (createdAtField is DateTime) {
-            createdAt = createdAtField;
-          }
-        } else if (data.containsKey('timestamp') && data['timestamp'] != null) {
-          final timestampField = data['timestamp'];
-          if (timestampField is Timestamp) {
-            createdAt = timestampField.toDate();
-          } else if (timestampField is DateTime) {
-            createdAt = timestampField;
+        
+        // ✅ CRITICAL FIX: Handle missing classId by checking teacherId
+        String? announcementClassId = data["classId"] as String?;
+        String? announcementTeacherId = data["teacherId"] as String?;
+        
+        // If classId is missing, try to find it from teacher's classes
+        if (announcementClassId == null && announcementTeacherId != null) {
+          final teacherClasses = await _firestore
+              .collection("classes")
+              .where("teacherId", isEqualTo: announcementTeacherId)
+              .get();
+          
+          for (final classDoc in teacherClasses.docs) {
+            final classId = classDoc.id;
+            if (classIds.contains(classId)) {
+              announcementClassId = classId;
+              break;
+            }
           }
         }
-
-        // Teacher name handling
-        if (data.containsKey('teacherName') && data['teacherName'] != null) {
-          teacherName = data['teacherName'] as String;
-        } else if (data.containsKey('author') && data['author'] != null) {
-          teacherName = data['author'] as String;
+        
+        // Skip if we can't determine the class
+        if (announcementClassId == null || !classIds.contains(announcementClassId)) {
+          continue;
         }
 
-        // Class name handling
-        if (data.containsKey('className') && data['className'] != null) {
-          className = data['className'] as String;
-        }
+        // Extract fields with fallbacks
+        String title = _extractField(data, ['title', 'announcementTitle', 'subject']) ?? "New Announcement";
+        String content = _extractField(data, ['content', 'description', 'announcementContent', 'body']) ?? "No description available";
+        DateTime createdAt = _extractDate(data, ['createdAt', 'timestamp', 'date']) ?? DateTime.now();
+        String teacherName = _extractField(data, ['teacherName', 'author', 'createdBy', 'teacher']) ?? "Teacher";
+        String className = _extractField(data, ['className', 'class', 'courseName']) ?? "Class";
 
         announcements.add(
           Announcement(
@@ -114,5 +91,33 @@ class AnnouncementService {
       print("Error loading announcements: $e");
       return [];
     }
+  }
+
+  // Helper method to extract string fields with multiple possible keys
+  String? _extractField(Map<String, dynamic> data, List<String> keys) {
+    for (final key in keys) {
+      if (data.containsKey(key) && data[key] != null) {
+        final value = data[key];
+        if (value is String && value.isNotEmpty) {
+          return value;
+        }
+      }
+    }
+    return null;
+  }
+
+  // Helper method to extract date fields
+  DateTime? _extractDate(Map<String, dynamic> data, List<String> keys) {
+    for (final key in keys) {
+      if (data.containsKey(key) && data[key] != null) {
+        final value = data[key];
+        if (value is Timestamp) {
+          return value.toDate();
+        } else if (value is DateTime) {
+          return value;
+        }
+      }
+    }
+    return null;
   }
 }

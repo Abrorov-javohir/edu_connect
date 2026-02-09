@@ -1,9 +1,6 @@
 // widgets/student_home_content.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:edu_connect/data/anouncement_service.dart';
 import 'package:edu_connect/data/student_stat_service.dart';
-import 'package:edu_connect/presintation/student_screens/model/anouncement_model.dart';
-import 'package:edu_connect/presintation/student_screens/widget/anouncement_section.dart';
 import 'package:edu_connect/presintation/student_screens/widget/courses_section.dart';
 import 'package:edu_connect/presintation/student_screens/widget/home_appbar_widget.dart';
 import 'package:edu_connect/presintation/student_screens/widget/leaderboard_dialog.dart';
@@ -27,23 +24,19 @@ class StudentHomeContent extends StatefulWidget {
 
 class _StudentHomeContentState extends State<StudentHomeContent> {
   final StudentStatsService _statsService = StudentStatsService();
-  final AnnouncementService _announcementService = AnnouncementService();
 
   // ✅ OPTIMIZED: Use separate loading states for better UX
   bool _loadingStats = true;
-  bool _loadingAnnouncements = true;
   bool _loadingCourses = true;
 
   StudentStats? _stats;
   List<CourseProgress> _courses = [];
-  List<Announcement> _announcements = [];
 
   // Translation map
   Map<String, Map<String, String>> translations = {
     'en': {
       'welcomeBack': 'Welcome back 👋',
       'student': 'Student',
-      'announcements': 'Announcements',
       'yourTasks': 'Your Tasks',
       'viewAll': 'View All',
       'noTasks': 'No tasks assigned yet. Check back later!',
@@ -52,7 +45,6 @@ class _StudentHomeContentState extends State<StudentHomeContent> {
     'uz': {
       'welcomeBack': 'Qaytganingiz bilan xush kelibsiz 👋',
       'student': 'Talaba',
-      'announcements': 'E\'lonlar',
       'yourTasks': 'Sizning vazifalaringiz',
       'viewAll': 'Barchasini ko\'rish',
       'noTasks': 'Hali hech qanday vazifa berilmagan. Keyinroq qayting!',
@@ -61,7 +53,6 @@ class _StudentHomeContentState extends State<StudentHomeContent> {
     'ru': {
       'welcomeBack': 'С возвращением 👋',
       'student': 'Студент',
-      'announcements': 'Объявления',
       'yourTasks': 'Ваши задания',
       'viewAll': 'Посмотреть все',
       'noTasks': 'Заданий пока не назначено. Загляните позже!',
@@ -91,11 +82,10 @@ class _StudentHomeContentState extends State<StudentHomeContent> {
 
     // ✅ OPTIMIZED: Load all data in PARALLEL with proper error handling
     final statsFuture = _loadStats(userId);
-    final announcementsFuture = _loadAnnouncements();
     final coursesFuture = _loadCourses(userId);
 
     // Wait for all futures to complete
-    await Future.wait([statsFuture, announcementsFuture, coursesFuture]);
+    await Future.wait([statsFuture, coursesFuture]);
   }
 
   Future<void> _loadStats(String userId) async {
@@ -113,26 +103,6 @@ class _StudentHomeContentState extends State<StudentHomeContent> {
       print("Error loading stats: $e");
       if (mounted) {
         setState(() => _loadingStats = false);
-      }
-    }
-  }
-
-  Future<void> _loadAnnouncements() async {
-    if (!mounted) return; // ✅ FIXED: Check mounted before setState
-    setState(() => _loadingAnnouncements = true);
-    try {
-      final announcements = await _announcementService
-          .getStudentAnnouncements();
-      if (mounted) {
-        setState(() {
-          _announcements = announcements;
-          _loadingAnnouncements = false;
-        });
-      }
-    } catch (e) {
-      print("Error loading announcements: $e");
-      if (mounted) {
-        setState(() => _loadingAnnouncements = false);
       }
     }
   }
@@ -156,8 +126,7 @@ class _StudentHomeContentState extends State<StudentHomeContent> {
     }
   }
 
-  bool get _isLoading =>
-      _loadingStats || _loadingAnnouncements || _loadingCourses;
+  bool get _isLoading => _loadingStats || _loadingCourses;
 
   @override
   Widget build(BuildContext context) {
@@ -190,11 +159,6 @@ class _StudentHomeContentState extends State<StudentHomeContent> {
 
           const SizedBox(height: 20),
 
-          // 📢 ANNOUNCEMENTS SECTION - Show immediately with skeleton
-          _buildAnnouncementsSection(isDarkMode),
-
-          const SizedBox(height: 24),
-
           // 🧩 STATS CARDS SECTION - Show immediately with skeleton
           _buildStatsCardsSection(isDarkMode),
 
@@ -208,69 +172,13 @@ class _StudentHomeContentState extends State<StudentHomeContent> {
           _buildTasksSection(isDarkMode, textColor),
 
           // 🌀 FULL LOADING STATE (fallback)
-          if (_isLoading && _announcements.isEmpty && _courses.isEmpty)
+          if (_isLoading && _courses.isEmpty)
             Center(
               child: CircularProgressIndicator(
                 color: isDarkMode ? Colors.blue[400] : Colors.blue[700],
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAnnouncementsSection(bool isDarkMode) {
-    if (_loadingAnnouncements && _announcements.isEmpty) {
-      return _buildAnnouncementsSkeleton(isDarkMode);
-    }
-
-    // Debug: Print announcement count
-    print("Announcements loaded: ${_announcements.length}");
-
-    if (_announcements.isEmpty) {
-      return _buildEmptyAnnouncements(isDarkMode);
-    }
-
-    return AnnouncementsSection(announcements: _announcements);
-  }
-
-  Widget _buildEmptyAnnouncements(bool isDarkMode) {
-    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.grey[100];
-    final borderColor = isDarkMode ? Colors.grey[700]! : Colors.grey[300]!;
-    final iconColor = isDarkMode ? Colors.grey[400] : Colors.grey[400];
-    final textColor = isDarkMode ? Colors.grey[400] : Colors.grey[600];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SizedBox(
-        height: 160,
-        child: Container(
-          decoration: BoxDecoration(
-            color: cardColor,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: borderColor, width: 1),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.notifications_none, size: 48, color: iconColor),
-              const SizedBox(height: 12),
-              Text(
-                "No announcements yet",
-                style: GoogleFonts.poppins(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                "Your teachers will post announcements here",
-                style: GoogleFonts.poppins(fontSize: 12, color: textColor),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -501,23 +409,6 @@ class _StudentHomeContentState extends State<StudentHomeContent> {
   }
 
   // ✅ SKELETON LOADERS FOR BETTER UX
-  Widget _buildAnnouncementsSkeleton(bool isDarkMode) {
-    final skeletonColor = isDarkMode ? Colors.grey[700]! : Colors.grey[200]!;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: SizedBox(
-        height: 160,
-        child: Container(
-          decoration: BoxDecoration(
-            color: skeletonColor,
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildStatsSkeleton(bool isDarkMode) {
     final skeletonColor = isDarkMode ? Colors.grey[700]! : Colors.grey[200]!;
 
